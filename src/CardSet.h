@@ -2,66 +2,63 @@
 
 #include <iostream>
 #include <stdint.h>
-#include <sstream>
+#include <set>
+#include <vector>
+
+#include <gtest/gtest.h>
 
 std::ostream &operator <<(std::ostream &os, const __uint128_t x);
 
 class CardSet {
+  FRIEND_TEST(CardSetTest, Add);
+  FRIEND_TEST(CardSetTest, AddHigh);
+  FRIEND_TEST(CardSetTest, AddOverflow);
+  FRIEND_TEST(CardSetTest, Sub);
+  FRIEND_TEST(CardSetTest, SubOverflow);
+  FRIEND_TEST(CardSetTest, NumWild);
+  FRIEND_TEST(CardSetTest, CountRun);
+  FRIEND_TEST(CardSetTest, PossibleWildCombos);
+
  public:
   CardSet() : data_(0) {}
   CardSet(const __uint128_t data) : data_(data) {
-    assert((data >> 112) == 0);
+    assert((data >> 114) == 0);
   }
 
-  CardSet add(const CardSet &other) const {
-    if (detectOverflowAdd(other)) {
-      std::stringstream ss;
-      ss << "Overflow: adding " << other << " to " << *this;
-      throw std::overflow_error(ss.str());
-    }
-    return CardSet(data_ + other.data_);
+  bool operator ==(const CardSet &other) const {
+    return data_ == other.data_;
   }
 
-  CardSet sub(const CardSet &other) const {
-    if (detectOverflowSub(other)) {
-      std::stringstream ss;
-      ss << "Overflow: subtracting " << other << " from " << *this;
-      throw std::overflow_error(ss.str());
-    }
-    return CardSet(data_ - other.data_);
-  }
-
-  bool contains(const CardSet &other) const {
-    return !detectOverflowSub(other);
+  bool operator <(const CardSet &other) const {
+    return data_ < other.data_;
   }
 
   friend std::ostream &operator <<(std::ostream &os, const CardSet &cardSet);
+  std::string str() const;
+
+  CardSet add(const CardSet &other) const;
+  CardSet sub(const CardSet &other) const;
+  bool contains(const CardSet &other) const;
+  bool empty() const;
+  uint32_t score(const uint32_t wildNumber) const;
+
+  CardSet optimalRemainder(const uint32_t wildNumber) const;
 
  private:
-  __uint128_t getMask() const {
-    const __uint128_t temp = 0x5555555555555555;
-    const __uint128_t mask1 = temp << 24 | temp;
-    const __uint128_t mask2 = mask1 << 1;
-    return data_ | ((data_ & mask1) << 1) | ((data_ & mask2) >> 1);
-  }
+  uint32_t numWild(const uint32_t wildNumber) const;
+  __uint128_t getMask() const;
+  bool detectOverflowAdd(const CardSet &other) const;
+  bool detectOverflowSub(const CardSet &other) const;
+  static uint32_t sumFiveBitPairs(const uint32_t bits);
+  uint32_t popcount() const;
+  uint32_t countBook(const uint32_t number) const;
+  uint32_t countRun(const uint32_t suit) const;
 
-  bool detectOverflowAdd(const CardSet &other) const {
-    const __uint128_t temp = 0x3333333333333333;
-    const __uint128_t mask1 = temp << 24 | temp;
-    const __uint128_t mask2 = mask1 << 2;
-    return
-      (((data_ & mask1) + (other.data_ & mask1)) & ~mask1) != 0 ||
-      (((data_ & mask2) + (other.data_ & mask2)) & ~mask2) != 0;
-  }
+  std::vector<CardSet> possibleWildCombos(const uint32_t wildNumber) const;
 
-  bool detectOverflowSub(const CardSet &other) const {
-    const __uint128_t temp = 0x3333333333333333;
-    const __uint128_t mask1 = temp << 24 | temp;
-    const __uint128_t mask2 = mask1 << 2;
-    return
-      (((data_ & mask1) - (other.data_ & mask1)) & ~mask1) != 0 ||
-      (((data_ & mask2) - (other.data_ & mask2)) & ~mask2) != 0;
-  }
+ public:
+  std::set<CardSet> matches(const uint32_t wildNumber) const;
 
+ private:
   __uint128_t data_;
 };

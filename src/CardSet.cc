@@ -33,6 +33,9 @@ std::ostream &operator <<(std::ostream &os, const CardSet &cardSet) {
   return os;
 }
 
+static __uint128_t seed = 0xaaaaaaaaaaaaaaaa;
+const CardSet CardSet::FULL_DECK = CardSet(seed << 46 | seed | ((__uint128_t)6 << 110));
+
 std::string CardSet::str() const {
   std::stringstream ss;
   ss << *this;
@@ -67,7 +70,7 @@ bool CardSet::empty() const {
 
 uint32_t CardSet::score(const uint32_t wildNumber) const {
   uint32_t output;
-  for (int number = 0; number < 11; ++number) {
+  for (uint32_t number = 0; number < 11; ++number) {
     uint32_t count = sumFiveBitPairs(data_ >> (number * 10));
     output += count * ((number == wildNumber) ? 50 : (number + 3));
   }
@@ -89,6 +92,7 @@ CardSet CardSet::optimalRemainder(const uint32_t wildNumber) const {
   uint32_t bestScore = score(wildNumber);
   CardSet bestSet = *this;
   for (const CardSet &match : matches_) {
+    assert(!match.empty());
     CardSet matchRemainder = sub(match).optimalRemainder(wildNumber);
     uint32_t matchScore = matchRemainder.score(wildNumber);
     if (matchScore < bestScore) {
@@ -100,13 +104,44 @@ CardSet CardSet::optimalRemainder(const uint32_t wildNumber) const {
   return bestSet;
 }
 
+float CardSet::expectedScore(const CardSet &unseenCards, const uint32_t wildNumber, const uint32_t depth) const {
+  assert(depth >= 1);
+  float totalScore = 0;
+  uint32_t totalCards = 0;
+  __uint128_t unseenMask = unseenCards.getMask();
+  for (uint32_t i = 0; i < 110; i += 2) {
+    if ((unseenMask >> i) & 0x3) {
+      uint32_t numCards = (unseenCards.data_ >> i) & 0x3;
+      CardSet augmentedSet = add(CardSet((__uint128_t)1 << i));
+      __uint128_t augmentedMask = augmentedSet.getMask();
+      uint32_t bestScore = 1000000;
+      CardSet bestSet;
+      for (uint32_t j = 0; j < 110; j += 2) {
+        if ((augmentedMask >> j) & 0x3) {
+          CardSet diminishedSet = augmentedSet.sub(CardSet((__uint128_t)1 << j));
+          float score = depth == 1 ?
+            diminishedSet.optimalRemainder(wildNumber).score(wildNumber) :
+            diminishedSet.expectedScore(unseenCards, wildNumber, depth - 1);
+          if (score < bestScore) {
+            bestScore = score;
+            bestSet = diminishedSet;
+          }
+        }
+      }
+      totalScore += bestScore * numCards;
+      totalCards += numCards;
+    }
+  }
+  return (float)totalScore / totalCards;
+}
+
 uint32_t CardSet::numWild(const uint32_t wildNumber) const {
   return ((data_ >> 110) & 0x3) + countBook(wildNumber);
 }
 
 __uint128_t CardSet::getMask() const {
   const __uint128_t temp = 0x5555555555555555;
-  const __uint128_t mask1 = (temp << 64) | temp;
+  const __uint128_t mask1 = (temp << 46) | temp;
   const __uint128_t mask2 = mask1 << 1;
   return data_ | ((data_ & mask1) << 1) | ((data_ & mask2) >> 1);
 }
@@ -124,9 +159,12 @@ bool CardSet::detectOverflowSub(const CardSet &other) const {
   const __uint128_t temp = 0x3333333333333333;
   const __uint128_t mask1 = (temp << 64) | temp;
   const __uint128_t mask2 = mask1 << 2;
+  __uint128_t filteredData = data_ & (((__uint128_t)1 << 110) - 1);
+  __uint128_t filteredOther = other.data_ & (((__uint128_t)1 << 110) - 1);
   return
-    (((data_ & mask1) - (other.data_ & mask1)) & ~mask1) != 0 ||
-    (((data_ & mask2) - (other.data_ & mask2)) & ~mask2) != 0;
+    (((filteredData & mask1) - (filteredOther & mask1)) & ~mask1) != 0 ||
+    (((filteredData & mask2) - (filteredOther & mask2)) & ~mask2) != 0 ||
+    (data_ & ~(((__uint128_t)1 << 110) - 1)) < (other.data_ & ~(((__uint128_t)1 << 110) - 1));
 }
 
 uint32_t CardSet::sumFiveBitPairs(const uint32_t bits) {

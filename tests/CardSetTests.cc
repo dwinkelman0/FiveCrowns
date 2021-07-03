@@ -210,3 +210,13 @@ TEST(CardSetTest, FiveWithPartial) {
     ((__uint128_t)1 << 54));
   ASSERT_EQ(set.optimalRemainder(9), CardSet(((__uint128_t)1 << 22) | ((__uint128_t)1 << 42)));
 }
+
+TEST(CardSetTest, ExpectedScore) {
+  CardSet set(
+    ((__uint128_t)1 << 22) |
+    ((__uint128_t)1 << 42) |
+    ((__uint128_t)1 << 52) |
+    ((__uint128_t)1 << 54) |
+    ((__uint128_t)1 << 56));
+  std::cout << set.expectedScore(CardSet::FULL_DECK.sub(set), 9, 1) << std::endl;
+}

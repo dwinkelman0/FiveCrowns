@@ -41,12 +41,17 @@ class CardSet {
   bool contains(const CardSet &other) const;
   bool empty() const;
   uint32_t score(const uint32_t wildNumber) const;
+  __uint128_t getMask() const;
 
+  std::set<CardSet> matches(const uint32_t wildNumber) const;
   CardSet optimalRemainder(const uint32_t wildNumber) const;
+
+  float expectedScore(const CardSet &unseenCards, const uint32_t wildNumber, const uint32_t depth) const;
+
+  static const CardSet FULL_DECK;
 
  private:
   uint32_t numWild(const uint32_t wildNumber) const;
-  __uint128_t getMask() const;
   bool detectOverflowAdd(const CardSet &other) const;
   bool detectOverflowSub(const CardSet &other) const;
   static uint32_t sumFiveBitPairs(const uint32_t bits);
@@ -55,9 +60,6 @@ class CardSet {
   uint32_t countRun(const uint32_t suit) const;
 
   std::vector<CardSet> possibleWildCombos(const uint32_t wildNumber) const;
-
- public:
-  std::set<CardSet> matches(const uint32_t wildNumber) const;
 
  private:
   __uint128_t data_;

@@ -48,6 +48,8 @@ class CardSet {
 
   float expectedScore(const CardSet &unseenCards, const uint32_t wildNumber, const uint32_t depth) const;
 
+  static void clearCache();
+
   static const CardSet FULL_DECK;
 
  private:
@@ -63,4 +65,5 @@ class CardSet {
 
  private:
   __uint128_t data_;
+  static std::map<CardSet, CardSet> cache_[11];
 };

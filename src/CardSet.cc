@@ -79,14 +79,13 @@ uint32_t CardSet::score(const uint32_t wildNumber) const {
 }
 
 CardSet CardSet::optimalRemainder(const uint32_t wildNumber) const {
-  static std::map<CardSet, CardSet> cache[11];
-  auto cacheIt = cache[wildNumber].find(*this);
-  if (cacheIt != cache[wildNumber].end()) {
+  auto cacheIt = cache_[wildNumber].find(*this);
+  if (cacheIt != cache_[wildNumber].end()) {
     return cacheIt->second;
   }
   std::set<CardSet> matches_ = matches(wildNumber);
   if (matches_.empty()) {
-    cache[wildNumber].emplace(*this, *this);
+    cache_[wildNumber].emplace(*this, *this);
     return *this;
   }
   uint32_t bestScore = score(wildNumber);
@@ -100,7 +99,7 @@ CardSet CardSet::optimalRemainder(const uint32_t wildNumber) const {
       bestSet = matchRemainder;
     }
   }
-  cache[wildNumber].emplace(*this, bestSet);
+  cache_[wildNumber].emplace(*this, bestSet);
   return bestSet;
 }
 
@@ -121,7 +120,7 @@ float CardSet::expectedScore(const CardSet &unseenCards, const uint32_t wildNumb
           CardSet diminishedSet = augmentedSet.sub(CardSet((__uint128_t)1 << j));
           float score = depth == 1 ?
             diminishedSet.optimalRemainder(wildNumber).score(wildNumber) :
-            diminishedSet.expectedScore(unseenCards, wildNumber, depth - 1);
+            diminishedSet.expectedScore(FULL_DECK.sub(diminishedSet), wildNumber, depth - 1);
           if (score < bestScore) {
             bestScore = score;
             bestSet = diminishedSet;
@@ -290,3 +289,11 @@ std::set<CardSet> CardSet::matches(const uint32_t wildNumber) const {
 
   return output;
 }
+
+void CardSet::clearCache() {
+  for (int i = 0; i < 11; ++i) {
+    cache_[i].clear();
+  }
+}
+
+std::map<CardSet, CardSet> CardSet::cache_[11];

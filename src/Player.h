@@ -13,7 +13,7 @@ class Player {
   CardSet getHand() const;
 
  private:
-  std::pair<CardSet, uint32_t> chooseDiscard(const CardSet &newCard, const uint32_t wildNumber) const;
+  std::pair<CardSet, float> chooseDiscard(const CardSet &newCard, const uint32_t wildNumber) const;
 
   CardSet hand_;
   CardSet unseen_;

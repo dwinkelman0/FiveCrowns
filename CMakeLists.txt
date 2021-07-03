@@ -5,6 +5,7 @@ set (CMAKE_CXX_STANDARD 17)
 
 project (FiveCrowns CXX)
 set (Target_lib fivecrowns)
+set (Target_client fivecrowns-client)
 set (Target_tests fivecrowns-tests)
 
 include (FetchContent)
@@ -17,6 +18,10 @@ include_directories (${googletest_SOURCE_DIR}/googletest/include)
 
 file (GLOB LIB_SOURCES src/*.cc)
 add_library (${Target_lib} ${LIB_SOURCES})
+
+file (GLOB CLIENT_SOURCES client/*.cc)
+add_executable (${Target_client} ${CLIENT_SOURCES})
+target_link_libraries (${Target_client} ${Target_lib})
 
 file (GLOB TESTS_SOURCES tests/*.cc)
 add_executable (${Target_tests} ${TESTS_SOURCES})

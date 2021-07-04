@@ -9,6 +9,7 @@ class Game {
  public:
   struct Stats {
     std::vector<uint32_t> scores;
+    uint32_t numPlayers;
     uint32_t numPlays;
     uint32_t numTopCards;
   };
@@ -48,9 +49,10 @@ class Game {
       bool willDraw = it->chooseToDraw(topCard_, wildNumber_);
       numTopCards += !willDraw;
       topCard_ = it->pickUpAndDiscard(willDraw ? deal() : topCard_, wildNumber_);
+      uint32_t score = it->optimalRemainder(wildNumber_).score(wildNumber_);
+      stats.scores.push_back(score);
       if (it->optimalRemainder(wildNumber_).empty()) {
         winner = it;
-        stats.scores.push_back(0);
         break;
       }
     }
@@ -63,6 +65,7 @@ class Game {
       uint32_t score = it->optimalRemainder(wildNumber_).score(wildNumber_);
       stats.scores.push_back(score);
     }
+    stats.numPlayers = players_.size();
     stats.numPlays = numPlays;
     stats.numTopCards = numTopCards;
     return stats;

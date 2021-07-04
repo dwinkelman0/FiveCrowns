@@ -149,9 +149,12 @@ bool CardSet::detectOverflowAdd(const CardSet &other) const {
   const __uint128_t temp = 0x3333333333333333;
   const __uint128_t mask1 = (temp << 64) | temp;
   const __uint128_t mask2 = mask1 << 2;
+  __uint128_t filteredData = data_ & (((__uint128_t)1 << 110) - 1);
+  __uint128_t filteredOther = other.data_ & (((__uint128_t)1 << 110) - 1);
   return
-    (((data_ & mask1) + (other.data_ & mask1)) & ~mask1) != 0 ||
-    (((data_ & mask2) + (other.data_ & mask2)) & ~mask2) != 0;
+    (((filteredData & mask1) + (filteredOther & mask1)) & ~mask1) != 0 ||
+    (((filteredData & mask2) + (filteredOther & mask2)) & ~mask2) != 0 ||
+    ((data_ >> 110) + (other.data_ >> 110)) > 0xf;
 }
 
 bool CardSet::detectOverflowSub(const CardSet &other) const {
